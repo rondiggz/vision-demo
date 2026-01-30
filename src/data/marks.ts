@@ -168,8 +168,8 @@ The front of the station is actually considered the "lower" part of the station 
     category: "marketing",
     description: `Base Module makeup: MV120 (Physical cam-driven vertical motion module 120mm wide)
 Station Function: This station has a servo motor control combined with pneumatics to be used in part of the auto-injector assembly process.`,
-    content: { photos: [], videos: [], documents: [] },
-    deeplink: "https://my.matterport.com/show/?m=BGfbBBXhrZf&play=1&qs=1&hl=0&sr=0.75,0.08&ss=14",
+    content: { photos: [], videos: [], documents: ["/media/station3/auto-injector-final-assembly.pdf"] },
+    deeplink: "https://my.matterport.com/show/?m=BGfbBBXhrZf&play=1&qs=1&hl=0&cloudEdit=1&ss=23&sr=-1.5,1.32",
   },
 
   {
