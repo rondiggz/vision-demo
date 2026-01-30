@@ -1,47 +1,74 @@
-// src/pages/Vision.tsx
 console.log("VISION LOADED");
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { Box } from "@mui/material";
 import MarksTree from "../components/MarksTree";
-import MarkDrawer from "../components/MarkDrawer";
-import { MARKS } from "../data/marks";
+import MediaDrawer from "../components/MediaDrawer";
+import { MARKS, type Mark } from "../data/marks";
 
 const Vision: React.FC = () => {
-  const [selectedMark, setSelectedMark] = useState<
-    typeof MARKS[number] | null
-  >(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const modelSid = "BGfbBBXhrZf";
 
+  const [selectedMark, setSelectedMark] = useState<Mark | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-
-  // Viewer URL (iframe reloads on change)
-  const [viewerUrl, setViewerUrl] = useState(
-    "https://my.matterport.com/show/?m=BGfbBBXhrZf&play=1"
+  const [initialUrl] = useState(
+    `https://my.matterport.com/show/?m=${modelSid}&play=1&qs=1&hl=0`
   );
 
-  const handleSelectMark = useCallback((mark: typeof MARKS[number]) => {
-    setSelectedMark(mark);
-    setDrawerOpen(true);
+  // Build Matterport URL from position/rotation data
+  const buildMatterportUrl = useCallback(
+    (
+      position?: { x: number; y: number; z: number },
+      rotation?: { x: number; y: number },
+      sweepId?: string
+    ) => {
+      const baseUrl = `https://my.matterport.com/show/?m=${modelSid}`;
+      const params = new URLSearchParams({
+        play: "1",
+        qs: "1",
+        hl: "0",
+      });
 
-    if (mark.cameraUrl) {
-      // Force reload every time
-      const forced = `${mark.cameraUrl}&ts=${Date.now()}`;
-      setViewerUrl(forced);
-    }
-  }, []);
+      if (rotation) {
+        params.set("sr", `${rotation.x},${rotation.y}`);
+      }
 
-  const viewer = useMemo(
-    () => (
-      <iframe
-        key={viewerUrl}
-        src={viewerUrl}
-        width="100%"
-        height="100%"
-        style={{ border: "none" }}
-        allow="fullscreen; xr-spatial-tracking"
-      />
-    ),
-    [viewerUrl]
+      if (position) {
+        params.set("sp", `${position.x},${position.y},${position.z}`);
+      }
+
+      if (sweepId) {
+        params.set("ss", sweepId);
+      }
+
+      return `${baseUrl}&${params.toString()}`;
+    },
+    [modelSid]
+  );
+
+  const handleSelectMark = useCallback(
+    (mark: Mark) => {
+      console.log("MARK CLICKED:", mark.id);
+
+      setSelectedMark(mark);
+      setDrawerOpen(true);
+
+      // Strategy: Use deeplink if available, otherwise build from position data
+      if (mark.deeplink && iframeRef.current) {
+        // Option C: Use stored deeplink (best option)
+        console.log("Navigating using deeplink:", mark.deeplink);
+        iframeRef.current.src = mark.deeplink;
+      } else if (mark.position && iframeRef.current) {
+        // Option A: Build URL from position/rotation data
+        const url = buildMatterportUrl(mark.position, mark.rotation, mark.sweepId);
+        console.log("Navigating using position data:", url);
+        iframeRef.current.src = url;
+      } else {
+        console.warn("Mark has no navigation data (deeplink or position):", mark.id);
+      }
+    },
+    [buildMatterportUrl]
   );
 
   return (
@@ -59,20 +86,21 @@ const Vision: React.FC = () => {
         onSelectMark={handleSelectMark}
       />
 
-      <Box
-        sx={{
-          flexGrow: 1,
-          position: "relative",
-          bgcolor: "black",
-        }}
-      >
-        {viewer}
+      <Box sx={{ flexGrow: 1, position: "relative", bgcolor: "black" }}>
+        <iframe
+          ref={iframeRef}
+          src={initialUrl}
+          width="100%"
+          height="100%"
+          style={{ border: "none" }}
+          allow="fullscreen; xr-spatial-tracking"
+        />
       </Box>
 
-      <MarkDrawer
+      <MediaDrawer
         open={drawerOpen}
-        mark={selectedMark}
         onClose={() => setDrawerOpen(false)}
+        selectedMark={selectedMark}
       />
     </Box>
   );
